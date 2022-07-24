@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { MouseEvent } from "react";
+import { Dispatch, MouseEvent, SetStateAction } from "react";
 import Image from "next/image";
 
 const Modal = ({
@@ -10,11 +10,29 @@ const Modal = ({
 }: {
   tokens: any;
   selectId: string;
-  setFromToken: any;
-  setToToken: any;
+  setFromToken: Dispatch<
+    SetStateAction<{
+      symbol: string;
+      decimals: number;
+    }>
+  >;
+  setToToken: Dispatch<
+    SetStateAction<{
+      symbol: string;
+      decimals: number;
+    }>
+  >;
 }) => {
-  const selectTokenHandler = (tokenName: string) => {
-    selectId === "from" ? setFromToken(tokenName) : setToToken(tokenName);
+  const selectTokenHandler = ({
+    symbol,
+    decimals,
+  }: {
+    symbol: string;
+    decimals: number;
+  }) => {
+    selectId === "from"
+      ? setFromToken((p) => ({ ...p, symbol, decimals }))
+      : setToToken((p) => ({ ...p, symbol, decimals }));
   };
 
   return (
@@ -35,7 +53,14 @@ const Modal = ({
           </div>
           <div className="modal-body">
             <div>
-              <div onClick={() => selectTokenHandler("ETH")}>
+              <div
+                onClick={() =>
+                  selectTokenHandler({
+                    symbol: "ETH",
+                    decimals: 18,
+                  })
+                }
+              >
                 <div>ETH</div>
                 <div>Ether</div>
                 <img
@@ -49,7 +74,12 @@ const Modal = ({
             {tokens.map((token: any) => (
               <div
                 key={token.name}
-                onClick={() => selectTokenHandler(token.symbol)}
+                onClick={() =>
+                  selectTokenHandler({
+                    symbol: token.symbol,
+                    decimals: parseInt(token.decimals),
+                  })
+                }
               >
                 <div>{token.symbol}</div>
                 <div>{token.name}</div>

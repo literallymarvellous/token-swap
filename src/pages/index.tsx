@@ -1,11 +1,13 @@
 import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import { ChangeEvent, MouseEvent, useMemo, useState } from "react";
+import { ChangeEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 import Modal from "../components/Modal";
 import styles from "../styles/Home.module.css";
 import useSWR from "swr";
 import dynamic from "next/dynamic";
+import qs from "qs";
+import useDebounce from "../hooks/useDebounce";
 
 const DynamicModal = dynamic(() => import("../components/Modal"), {
   ssr: false,
@@ -34,11 +36,19 @@ const getTokenList = (data: any) => {
 
 const Home: NextPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [fromToken, setFromToken] = useState("");
-  const [toToken, setToToken] = useState("");
+  const [fromToken, setFromToken] = useState({
+    symbol: "ETH",
+    decimals: 18,
+  });
+  const [toToken, setToToken] = useState({
+    symbol: "",
+    decimals: 0,
+  });
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [selectId, setSelectId] = useState("");
+  const [inputId, setInputId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const { data, error } = useSWR(
     "https://gateway.ipfs.io/ipns/tokens.uniswap.org",
@@ -47,7 +57,16 @@ const Home: NextPage = () => {
 
   const tokenList = useMemo(() => getTokenList(data), [data]);
 
-  console.log("tokenList", tokenList);
+  console.log("tokenList", tokenList[1]);
+
+  const { debouncedFromValue, debouncedToValue } = useDebounce<string>(
+    fromAmount,
+    toAmount,
+    inputId,
+    500
+  );
+
+  console.log("debounce", debouncedFromValue, debouncedToValue);
 
   const modalHandler = (
     e: MouseEvent<HTMLDivElement, globalThis.MouseEvent>
@@ -59,8 +78,83 @@ const Home: NextPage = () => {
 
   const setAmountHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    id === "fromAmount" ? setFromAmount(value) : setToAmount(value);
+    if (id === "fromAmount") {
+      setInputId("fromAmount");
+      setFromAmount(value);
+    } else {
+      setInputId("toAmount");
+      setToAmount(value);
+    }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const getPrice = async (params: {
+      sellToken: string;
+      buyToken: string;
+      sellAmount?: number;
+      buyAmount?: number;
+    }) => {
+      setIsLoading(true);
+
+      const { sellToken, buyToken, sellAmount, buyAmount } = params;
+
+      if (!sellToken || !buyToken) {
+        return;
+      }
+
+      console.log("starting fetch");
+
+      const response = await fetch(
+        `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
+      );
+
+      if (cancelled) return;
+
+      console.log("gotten reponse");
+      const data = await response.json();
+
+      console.log("gotten data", data);
+
+      let amount: number;
+      if (inputId === "fromAmount") {
+        amount = data.buyAmount / 10 ** toToken.decimals;
+        console.log("amount", amount);
+        setToAmount(amount.toString());
+      } else {
+        amount = data.sellAmount / 10 ** fromToken.decimals;
+        console.log("amount", amount);
+        setFromAmount(amount.toString());
+      }
+    };
+
+    if (!debouncedFromValue && !debouncedToValue) {
+      return;
+    }
+
+    if (inputId === "fromAmount") {
+      const amount = Number(debouncedFromValue);
+      getPrice({
+        sellToken: fromToken.symbol,
+        buyToken: toToken.symbol,
+        sellAmount: amount * 10 ** fromToken.decimals,
+      });
+      setIsLoading(false);
+    } else {
+      const amount = Number(debouncedToValue);
+      console.log("debouncedToValue", debouncedToValue);
+      getPrice({
+        sellToken: fromToken.symbol,
+        buyToken: toToken.symbol,
+        buyAmount: amount * 10 ** toToken.decimals,
+      });
+      setIsLoading(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedFromValue, debouncedToValue]);
 
   return (
     <div className={styles.container}>
@@ -82,13 +176,14 @@ const Home: NextPage = () => {
                 id="from"
                 onClick={modalHandler}
               >
-                {fromToken ? fromToken : "SELECT A TOKEN"}
+                {fromToken.symbol ? fromToken.symbol : "SELECT A TOKEN"}
               </div>
               <div className="swapbox_select">
                 <input
                   className="number form-control"
                   placeholder="amount"
                   id="fromAmount"
+                  value={fromAmount}
                   onChange={setAmountHandler}
                 />
               </div>
@@ -99,13 +194,15 @@ const Home: NextPage = () => {
                 id="to"
                 onClick={modalHandler}
               >
-                {toToken ? toToken : "SELECT A TOKEN"}
+                {toToken.symbol ? toToken.symbol : "SELECT A TOKEN"}
               </div>
               <div className="swapbox_select">
                 <input
                   className="number form-control"
                   placeholder="amount"
                   id="toAmount"
+                  value={toAmount}
+                  onChange={setAmountHandler}
                 />
               </div>
             </div>
