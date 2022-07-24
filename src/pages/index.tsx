@@ -8,6 +8,18 @@ import useSWR from "swr";
 import dynamic from "next/dynamic";
 import qs from "qs";
 import useDebounce from "../hooks/useDebounce";
+import {
+  erc20ABI,
+  useAccount,
+  useContract,
+  useNetwork,
+  useProvider,
+  useSigner,
+  useWebSocketProvider,
+} from "wagmi";
+import { alchemyProvider } from "wagmi/providers/alchemy";
+import { ERC20TokenContract } from "@0x/contract-wrappers";
+import { BigNumber, ethers, Signer } from "ethers";
 
 const DynamicModal = dynamic(() => import("../components/Modal"), {
   ssr: false,
@@ -34,21 +46,55 @@ const getTokenList = (data: any) => {
   return tokens;
 };
 
+const getQuote = async (params: {
+  sellToken: string;
+  buyToken: string;
+  takerAddress?: string;
+  sellAmount?: number;
+  buyAmount?: number;
+}) => {
+  const { sellToken, buyToken, takerAddress, sellAmount, buyAmount } = params;
+
+  if (!sellToken || !buyToken) {
+    return;
+  }
+
+  // const response = await fetch(
+  //   `https://api.0x.org/swap/v1/quote?${qs.stringify(params)}`
+  // );
+
+  console.log("takerAddress", takerAddress);
+
+  const response = await fetch(
+    `https://ropsten.api.0x.org/swap/v1/quote?${qs.stringify(params)}`
+  );
+
+  const data = await response.json();
+
+  console.log("gotten quote", data);
+  return data;
+};
+
 const Home: NextPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [fromToken, setFromToken] = useState({
     symbol: "ETH",
     decimals: 18,
+    address: "",
   });
   const [toToken, setToToken] = useState({
     symbol: "",
     decimals: 0,
+    address: "",
   });
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [selectId, setSelectId] = useState("");
   const [inputId, setInputId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { address, isConnected } = useAccount();
+  const provider = useProvider();
 
   const { data, error } = useSWR(
     "https://gateway.ipfs.io/ipns/tokens.uniswap.org",
@@ -87,6 +133,43 @@ const Home: NextPage = () => {
     }
   };
 
+  const { data: signer, isSuccess } = useSigner();
+
+  const contract = useContract({
+    addressOrName: "0xc778417e063141139fce010982780140aa0cd5ab",
+    contractInterface: erc20ABI,
+    signerOrProvider: signer,
+  });
+
+  const trySwap = async () => {
+    if (!address) return;
+
+    const quote = await getQuote({
+      sellToken: fromToken.symbol,
+      buyToken: toToken.symbol,
+      sellAmount: Number(fromAmount) * 10 ** fromToken.decimals,
+      takerAddress: address,
+    });
+
+    console.log("quote", quote);
+
+    const tokenAddress =
+      process.env.NEXT_PUBLIC_ENVIRONMENT === "testnet"
+        ? "0xc778417e063141139fce010982780140aa0cd5ab"
+        : fromToken.address;
+    console.log("tokenAddress", tokenAddress);
+
+    const maxApproval = BigNumber.from(2).pow(256).sub(1);
+    console.log("maxApproval", maxApproval);
+    console.log("contract", contract);
+
+    // const approve = await contract.approve(quote.allowanceTarget, maxApproval);
+    // console.log("approve", approve);
+
+    const receipt = await signer?.sendTransaction(quote);
+    console.log("receipt", receipt);
+  };
+
   useEffect(() => {
     let cancelled = false;
     const getPrice = async (params: {
@@ -105,8 +188,12 @@ const Home: NextPage = () => {
 
       console.log("starting fetch");
 
+      // const response = await fetch(
+      //   `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
+      // );
+
       const response = await fetch(
-        `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
+        `https://ropsten.api.0x.org/swap/v1/price?${qs.stringify(params)}`
       );
 
       if (cancelled) return;
@@ -210,9 +297,10 @@ const Home: NextPage = () => {
               Estimated Gas: <span id="gas_estimate"></span>
             </div>
             <button
-              disabled
+              // disabled
               className="btn btn-large btn-primary btn-block"
               id="swap_button"
+              onClick={trySwap}
             >
               Swap
             </button>

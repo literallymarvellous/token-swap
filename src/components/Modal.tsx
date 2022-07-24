@@ -14,25 +14,29 @@ const Modal = ({
     SetStateAction<{
       symbol: string;
       decimals: number;
+      address: string;
     }>
   >;
   setToToken: Dispatch<
     SetStateAction<{
       symbol: string;
       decimals: number;
+      address: string;
     }>
   >;
 }) => {
   const selectTokenHandler = ({
     symbol,
     decimals,
+    address,
   }: {
     symbol: string;
     decimals: number;
+    address: string;
   }) => {
     selectId === "from"
-      ? setFromToken((p) => ({ ...p, symbol, decimals }))
-      : setToToken((p) => ({ ...p, symbol, decimals }));
+      ? setFromToken((p) => ({ ...p, symbol, decimals, address }))
+      : setToToken((p) => ({ ...p, symbol, decimals, address }));
   };
 
   return (
@@ -58,6 +62,7 @@ const Modal = ({
                   selectTokenHandler({
                     symbol: "ETH",
                     decimals: 18,
+                    address: "",
                   })
                 }
               >
@@ -78,6 +83,7 @@ const Modal = ({
                   selectTokenHandler({
                     symbol: token.symbol,
                     decimals: parseInt(token.decimals),
+                    address: token.address,
                   })
                 }
               >
