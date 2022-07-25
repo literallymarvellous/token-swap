@@ -21,8 +21,19 @@ const SwapForm = () => {
           </SelectWrapper>
         </InputWrapper>
 
+        <ArrowIcon>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.3 -0.3 2.6 7.6">
+            <path
+              d="M 0 0 L 2 1 M 0 3 L 2 2 M 2 4 L 0 5 M 2 7 L 0 6"
+              stroke="#000000"
+              strokeWidth="0.5"
+              fill="#000000"
+            />
+          </svg>
+        </ArrowIcon>
+
         <InputWrapper>
-          <InputLabel htmlFor="from">from</InputLabel>
+          <InputLabel htmlFor="to">to</InputLabel>
           <SelectWrapper>
             <SelectButton></SelectButton>
             <Input id="from" />
@@ -70,19 +81,27 @@ const ContinueButton = styled.button`
 
 const FormWrapper = styled.div`
   display: flex;
+  gap: 20px;
+`;
+
+const ArrowIcon = styled.div`
+  width: 12px;
+  height: 12px;
 `;
 
 const InputWrapper = styled.div`
   flex: 1;
 `;
 
-const InputLabel = styled.label`
-  color: var(--color-primary-dark);
+const InputLabel = styled.label``;
+
+const SelectWrapper = styled.div`
+  background: var(--color-white);
 `;
 
-const SelectWrapper = styled.div``;
-
-const SelectButton = styled.button``;
+const SelectButton = styled.button`
+  background: var(--color-black);
+`;
 
 const Input = styled.input``;
 
