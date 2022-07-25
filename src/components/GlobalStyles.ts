@@ -72,6 +72,7 @@ html {
   --color-black: hsl(${COLORS.black});
   --color-primary: hsl(${COLORS.primary});
   --color-primary-dark: hsl(${COLORS.primaryDark});
+  --color-primary-light: hsl(${COLORS.primaryLight});
 
   /* shadows */
   :root {
@@ -100,10 +101,13 @@ html {
 }
 
   /* Fonts */
-  --font-family-header: "Ibarra Real Nova", serif;
+  --font-family-nova: "Ibarra Real Nova", serif;
+  --font-family-incon: 'Inconsolata', monospace;
 
   /* Spacing */
   --spacing-wrapper: 16px;
+
+  --border-radius: 3px;
 }
 
 html, body, #root {

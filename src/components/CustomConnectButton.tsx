@@ -66,6 +66,7 @@ const BaseButton = styled.button`
 
 const ConnectButtonCustom = styled(BaseButton)`
   background: var(--color-white);
+  border-radius: var(--border-radius);
   font-size: calc(var(--step-0) * 0.75);
   font-weight: 700;
   box-shadow: var(--shadow-elevation-high);

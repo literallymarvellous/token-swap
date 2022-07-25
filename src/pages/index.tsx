@@ -21,6 +21,7 @@ import { alchemyProvider } from "wagmi/providers/alchemy";
 import { ERC20TokenContract } from "@0x/contract-wrappers";
 import { BigNumber, BigNumberish, BytesLike, ethers, Signer } from "ethers";
 import { AccessListish } from "ethers/lib/utils";
+import SwapForm from "../components/SwapForm";
 
 const DynamicModal = dynamic(() => import("../components/Modal"), {
   ssr: false,
@@ -298,9 +299,8 @@ const Home: NextPage = () => {
       </Head>
 
       <main>
-        <h1>Hello</h1>
-
-        <div className="col col-md-6 offset-md-3" id="window">
+        <SwapForm />
+        {/* <div className="col col-md-6 offset-md-3" id="window">
           <h4>Swap</h4>
           <div id="form">
             <div className="swapbox">
@@ -360,7 +360,7 @@ const Home: NextPage = () => {
             setFromToken={setFromToken}
             setToToken={setToToken}
           />
-        )}
+        )} */}
         {/* {modalOpen && <DynamicModal tokens={tokenList} />} */}
       </main>
     </div>
