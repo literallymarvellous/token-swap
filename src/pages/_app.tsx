@@ -1,8 +1,7 @@
-import "../styles/globals.css";
+import GlobalStyles from "../components/GlobalStyles";
 import type { AppProps } from "next/app";
 import "@rainbow-me/rainbowkit/styles.css";
 import {
-  ConnectButton,
   getDefaultWallets,
   RainbowKitProvider,
   darkTheme,
@@ -10,6 +9,7 @@ import {
 import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
+import Layout from "../components/Layout";
 
 const { chains, provider } = configureChains(
   [chain.ropsten, chain.goerli, chain.mainnet],
@@ -30,10 +30,10 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <WagmiConfig client={wagmiClient}>
       <RainbowKitProvider chains={chains} theme={darkTheme()}>
-        <div style={{ position: "absolute", top: 5, right: 5 }}>
-          <ConnectButton chainStatus="icon" />
-        </div>
-        <Component {...pageProps} />
+        <GlobalStyles />
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
       </RainbowKitProvider>
     </WagmiConfig>
   );
