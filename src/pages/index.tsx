@@ -14,16 +14,40 @@ import {
   useContract,
   useNetwork,
   useProvider,
+  useSendTransaction,
   useSigner,
   useWebSocketProvider,
 } from "wagmi";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { ERC20TokenContract } from "@0x/contract-wrappers";
-import { BigNumber, ethers, Signer } from "ethers";
+import { BigNumber, BigNumberish, BytesLike, ethers, Signer } from "ethers";
+import { AccessListish } from "ethers/lib/utils";
 
 const DynamicModal = dynamic(() => import("../components/Modal"), {
   ssr: false,
 });
+
+export type TransactionRequest = {
+  to?: string;
+  from?: string;
+  nonce?: BigNumberish;
+
+  gasLimit?: BigNumberish;
+  gasPrice?: BigNumberish;
+
+  data?: BytesLike;
+  value?: BigNumberish;
+  chainId?: number;
+
+  type?: number;
+  accessList?: AccessListish;
+
+  maxPriorityFeePerGas?: BigNumberish;
+  maxFeePerGas?: BigNumberish;
+
+  customData?: Record<string, any>;
+  ccipReadEnabled?: boolean;
+};
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -92,11 +116,13 @@ const Home: NextPage = () => {
   const [selectId, setSelectId] = useState("");
   const [inputId, setInputId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [quote, setQuote] = useState<TransactionRequest | undefined>();
 
   const { address, isConnected } = useAccount();
   const provider = useProvider();
 
-  const { data, error } = useSWR(
+  const { data } = useSWR(
     "https://gateway.ipfs.io/ipns/tokens.uniswap.org",
     fetcher
   );
@@ -141,8 +167,27 @@ const Home: NextPage = () => {
     signerOrProvider: signer,
   });
 
+  const { sendTransaction } = useSendTransaction({
+    request: {
+      to: quote?.to,
+      value: quote?.value,
+      data: quote?.data,
+      from: quote?.from,
+      gasPrice: quote?.gasPrice,
+      gasLimit: quote?.gasLimit,
+      chainId: quote?.chainId,
+    },
+    onSuccess() {
+      console.log("success");
+      setQuote({});
+    },
+  });
+
   const trySwap = async () => {
-    if (!address) return;
+    if (!address) {
+      setError("Not connected to wallet");
+      return;
+    }
 
     const quote = await getQuote({
       sellToken: fromToken.symbol,
@@ -163,11 +208,7 @@ const Home: NextPage = () => {
     console.log("maxApproval", maxApproval);
     console.log("contract", contract);
 
-    // const approve = await contract.approve(quote.allowanceTarget, maxApproval);
-    // console.log("approve", approve);
-
-    const receipt = await signer?.sendTransaction(quote);
-    console.log("receipt", receipt);
+    setQuote(quote);
   };
 
   useEffect(() => {
@@ -242,6 +283,12 @@ const Home: NextPage = () => {
       cancelled = true;
     };
   }, [debouncedFromValue, debouncedToValue]);
+
+  useEffect(() => {
+    if (!quote) return;
+
+    sendTransaction();
+  }, [quote]);
 
   return (
     <div className={styles.container}>
