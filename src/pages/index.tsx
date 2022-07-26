@@ -362,6 +362,12 @@ const Home: NextPage = () => {
           />
         )} */}
         {/* {modalOpen && <DynamicModal tokens={tokenList} />} */}
+        <Modal
+          tokens={tokenList}
+          selectId={selectId}
+          setFromToken={setFromToken}
+          setToToken={setToToken}
+        />
       </main>
     </div>
   );

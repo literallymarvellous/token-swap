@@ -1,8 +1,8 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import styled from "styled-components";
 import { CustomConnectButton } from "./CustomConnectButton";
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+const Layout = ({ children }: { children: ReactNode }) => {
   return (
     <Wrapper>
       <Header>
@@ -18,6 +18,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <CustomConnectButton />
         </WalletWrapper>
       </Header>
+
       {children}
 
       <Footer>
@@ -29,7 +30,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <span>minimum recieved</span> <span>2.056836330</span>
           </div>
           <div>
-            <span>price impat</span> <span>0.00</span>
+            <span>price impact</span> <span>0.00</span>
           </div>
           <div>
             <span>liquidity provide fee</span> <span>0.23740</span>
@@ -55,10 +56,18 @@ const Wrapper = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: min(100% - var(--spacing-wrapper), 1200px);
+  margin-inline: auto;
 `;
 
 const Header = styled.header`
-  padding-inline: var(--spacing-wrapper);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: min(100% - var(--spacing-wrapper), 1200px);
+  margin-inline: auto;
+  /* padding-inline: var(--spacing-wrapper); */
   display: flex;
   align-items: center;
   text-transform: uppercase;
@@ -93,14 +102,25 @@ const WalletWrapper = styled.div`
 `;
 
 const Footer = styled.footer`
-  padding-inline: var(--spacing-wrapper);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: min(100% - var(--spacing-wrapper), 1200px);
+  margin-inline: auto;
+  /* padding-inline: var(--spacing-wrapper); */
   margin-top: auto;
   padding-bottom: 32px;
   display: flex;
+  text-transform: uppercase;
+  color: var(--color-primary-dark);
+  font-size: 0.85rem;
 `;
 
 const BalanceDisplay = styled.div`
   flex: 1;
+  display: flex;
+  gap: 16px;
 `;
 
 const SwapInfo = styled.div`
@@ -108,6 +128,7 @@ const SwapInfo = styled.div`
 
   & > div {
     display: flex;
+    padding-top: 8px;
 
     & > span:first-of-type {
       text-align: left;
