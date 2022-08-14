@@ -1,4 +1,5 @@
-import { ChangeEvent, MouseEvent, useEffect, useMemo, useState } from "react";
+/* eslint-disable @next/next/no-img-element */
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import Modal from "../components/Modal";
 import useSWR from "swr";
 import dynamic from "next/dynamic";
@@ -8,17 +9,14 @@ import {
   erc20ABI,
   useAccount,
   useContract,
-  useNetwork,
-  useProvider,
   useSendTransaction,
   useSigner,
-  useWebSocketProvider,
 } from "wagmi";
-import { alchemyProvider } from "wagmi/providers/alchemy";
-import { ERC20TokenContract } from "@0x/contract-wrappers";
-import { BigNumber, BigNumberish, BytesLike, ethers, Signer } from "ethers";
+import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import { AccessListish } from "ethers/lib/utils";
 import styled from "styled-components";
+import { fetcher, getQuote, getTokenList } from "../utils";
+import { useGlobalState } from "../hooks/useGlobalContext";
 
 const DynamicModal = dynamic(() => import("../components/Modal"), {
   ssr: false,
@@ -46,70 +44,28 @@ export type TransactionRequest = {
   ccipReadEnabled?: boolean;
 };
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-const getTokenList = (data: any) => {
-  if (!data) {
-    return [];
-  }
-
-  const tokens = data.tokens.filter((token: any) => token.chainId == 1);
-  tokens.sort((a: any, b: any) => {
-    if (a.name < b.name) {
-      return -1;
-    }
-    if (a.name > b.name) {
-      return 1;
-    }
-    return 0;
-  });
-
-  return tokens;
-};
-
-const getQuote = async (params: {
-  sellToken: string;
-  buyToken: string;
-  takerAddress?: string;
-  sellAmount?: number;
-  buyAmount?: number;
-}) => {
-  const { sellToken, buyToken, takerAddress, sellAmount, buyAmount } = params;
-
-  if (!sellToken || !buyToken) {
-    return;
-  }
-  console.log("takerAddress", takerAddress);
-
-  const response = await fetch(
-    `https://ropsten.api.0x.org/swap/v1/quote?${qs.stringify(params)}`
-  );
-
-  const data = await response.json();
-
-  console.log("gotten quote", data);
-  return data;
-};
-
 const SwapForm = () => {
-  const [modalOpen, setModalOpen] = useState(false);
   const [fromToken, setFromToken] = useState({
     symbol: "ETH",
     decimals: 18,
     address: "",
+    image: "./eth.wine.svg",
   });
   const [toToken, setToToken] = useState({
     symbol: "",
     decimals: 0,
     address: "",
+    image: "",
   });
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
-  const [selectId, setSelectId] = useState("");
   const [inputId, setInputId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [quote, setQuote] = useState<TransactionRequest | undefined>();
+  // const [quote, setQuote] = useState<TransactionRequest | undefined>();
+  const [state, setState] = useGlobalState();
+
+  const quote = state.quote;
 
   const { data } = useSWR(
     "https://gateway.ipfs.io/ipns/tokens.uniswap.org",
@@ -118,10 +74,7 @@ const SwapForm = () => {
 
   const tokenList = useMemo(() => getTokenList(data), [data]);
 
-  console.log("tokenList", tokenList[1]);
-
   const { address, isConnected } = useAccount();
-  const provider = useProvider();
 
   const { debouncedFromValue, debouncedToValue } = useDebounce<string>(
     fromAmount,
@@ -129,14 +82,6 @@ const SwapForm = () => {
     inputId,
     500
   );
-
-  console.log("debounce", debouncedFromValue, debouncedToValue);
-
-  const modalHandler = (e: MouseEvent<HTMLButtonElement>) => {
-    console.log(e.currentTarget.id);
-    setSelectId(e.currentTarget.id);
-    setModalOpen((p) => !p);
-  };
 
   const setAmountHandler = (e: ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -149,7 +94,7 @@ const SwapForm = () => {
     }
   };
 
-  const { data: signer, isSuccess } = useSigner();
+  const { data: signer } = useSigner();
 
   const contract = useContract({
     addressOrName: "0xc778417e063141139fce010982780140aa0cd5ab",
@@ -164,12 +109,13 @@ const SwapForm = () => {
       data: quote?.data,
       from: quote?.from,
       gasPrice: quote?.gasPrice,
-      gasLimit: quote?.gasLimit,
+      gasLimit: quote?.gas,
       chainId: quote?.chainId,
     },
     onSuccess() {
       console.log("success");
-      setQuote({});
+      // setQuote({});
+      setState((prev) => ({ ...prev, quote: {} }));
     },
   });
 
@@ -198,7 +144,8 @@ const SwapForm = () => {
     console.log("maxApproval", maxApproval);
     console.log("contract", contract);
 
-    setQuote(quote);
+    // setQuote(quote);
+    setState((prev) => ({ ...prev, quote }));
   };
 
   useEffect(() => {
@@ -211,13 +158,11 @@ const SwapForm = () => {
     }) => {
       setIsLoading(true);
 
-      const { sellToken, buyToken, sellAmount, buyAmount } = params;
+      const { sellToken, buyToken } = params;
 
       if (!sellToken || !buyToken) {
         return;
       }
-
-      console.log("starting fetch");
 
       // const response = await fetch(
       //   `https://api.0x.org/swap/v1/price?${qs.stringify(params)}`
@@ -229,19 +174,14 @@ const SwapForm = () => {
 
       if (cancelled) return;
 
-      console.log("gotten reponse");
       const data = await response.json();
-
-      console.log("gotten data", data);
 
       let amount: number;
       if (inputId === "fromAmount") {
         amount = data.buyAmount / 10 ** toToken.decimals;
-        console.log("amount", amount);
         setToAmount(amount.toString());
       } else {
         amount = data.sellAmount / 10 ** fromToken.decimals;
-        console.log("amount", amount);
         setFromAmount(amount.toString());
       }
     };
@@ -260,7 +200,7 @@ const SwapForm = () => {
       setIsLoading(false);
     } else {
       const amount = Number(debouncedToValue);
-      console.log("debouncedToValue", debouncedToValue);
+
       getPrice({
         sellToken: fromToken.symbol,
         buyToken: toToken.symbol,
@@ -288,19 +228,29 @@ const SwapForm = () => {
             <span>currency</span> / <span>swap</span>
           </Heading>
 
-          <ContinueButton>Continue</ContinueButton>
+          <ContinueButton onClick={trySwap}>Continue</ContinueButton>
         </HeadingWrapper>
 
         <FormWrapper>
           <InputWrapper>
             <InputLabel htmlFor="from">from</InputLabel>
             <SelectWrapper>
-              <SelectButton id="from" onClick={modalHandler}>
-                <IconWrapper></IconWrapper>
-                <span>Choose</span>
-                <span>..</span>
-              </SelectButton>
-              <Input id="fromAmount" placeholder="0.00" />
+              <Modal tokens={tokenList} setFromToken={setFromToken}>
+                <SelectButton id="from">
+                  <IconWrapper>
+                    <img src={fromToken.image} alt={fromToken.symbol} />
+                  </IconWrapper>
+                  <span>{fromToken.symbol ? fromToken.symbol : "CHOOSE"}</span>
+                  <span>..</span>
+                </SelectButton>
+              </Modal>
+
+              <Input
+                id="fromAmount"
+                placeholder="0.00"
+                value={fromAmount}
+                onChange={setAmountHandler}
+              />
             </SelectWrapper>
           </InputWrapper>
 
@@ -318,24 +268,27 @@ const SwapForm = () => {
           <InputWrapper>
             <InputLabel htmlFor="to">to</InputLabel>
             <SelectWrapper>
-              <SelectButton id="to" onClick={modalHandler}>
-                <IconWrapper></IconWrapper>
-                <span>Choose</span>
-                <span>..</span>
-              </SelectButton>
-              <Input id="toAmount" placeholder="0.00" />
+              <Modal tokens={tokenList} setToToken={setToToken}>
+                <SelectButton id="to">
+                  <IconWrapper>
+                    {toToken.image && (
+                      <img src={toToken.image} alt={toToken.symbol} />
+                    )}
+                  </IconWrapper>
+                  <span>{toToken.symbol ? toToken.symbol : "CHOOSE"}</span>
+                  <span>..</span>
+                </SelectButton>
+              </Modal>
+              <Input
+                id="toAmount"
+                placeholder="0.00"
+                value={toAmount}
+                onChange={setAmountHandler}
+              />
             </SelectWrapper>
           </InputWrapper>
         </FormWrapper>
       </SwapContainer>
-
-      <Modal
-        modalOpen={modalOpen}
-        tokens={tokenList}
-        selectId={selectId}
-        setFromToken={setFromToken}
-        setToToken={setToToken}
-      />
     </Wrapper>
   );
 };
@@ -347,13 +300,8 @@ const Wrapper = styled.section`
   --spacing-select-top: 16px;
 
   font-family: var(--font-family-incon);
-  min-height: 100vh;
-  display: grid;
-  grid-template-rows: 1fr 2fr 1.6fr;
-  grid-template-areas:
-    "."
-    "main"
-    ".";
+  width: min(100% - var(--spacing-wrapper), 1200px);
+  margin-inline: auto;
 `;
 
 const SwapContainer = styled.div`
@@ -364,6 +312,7 @@ const SwapContainer = styled.div`
 `;
 
 const HeadingWrapper = styled.div`
+  margin-bottom: 64px;
   display: flex;
   justify-content: space-between;
 `;
@@ -462,6 +411,11 @@ const IconWrapper = styled.div`
   width: 30px;
   height: 30px;
   background: #fff;
+
+  img {
+    width: 100%;
+    height: 100%;
+  }
 `;
 
 export default SwapForm;

@@ -10,6 +10,7 @@ import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
 import Layout from "../components/Layout";
+import { GlobalStateProvider } from "../hooks/useGlobalContext";
 
 const { chains, provider } = configureChains(
   [chain.ropsten, chain.goerli, chain.mainnet],
@@ -31,9 +32,11 @@ function MyApp({ Component, pageProps }: AppProps) {
     <WagmiConfig client={wagmiClient}>
       <RainbowKitProvider chains={chains} theme={darkTheme()}>
         <GlobalStyles />
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
+        <GlobalStateProvider>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        </GlobalStateProvider>
       </RainbowKitProvider>
     </WagmiConfig>
   );

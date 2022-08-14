@@ -1,8 +1,12 @@
 import React, { ReactNode } from "react";
 import styled from "styled-components";
+import { useGlobalState } from "../hooks/useGlobalContext";
 import { CustomConnectButton } from "./CustomConnectButton";
 
 const Layout = ({ children }: { children: ReactNode }) => {
+  const [state] = useGlobalState();
+  const quote = state.quote;
+
   return (
     <Wrapper>
       <Header>
@@ -27,16 +31,18 @@ const Layout = ({ children }: { children: ReactNode }) => {
         </BalanceDisplay>
         <SwapInfo>
           <div>
-            <span>minimum recieved</span> <span>2.056836330</span>
+            <span>minimum recieved</span> <span>{quote.guaranteedPrice}</span>
           </div>
           <div>
-            <span>price impact</span> <span>0.00</span>
+            <span>price impact</span> <span>{quote.estimatedPriceImpact}</span>
           </div>
           <div>
-            <span>liquidity provide fee</span> <span>0.23740</span>
+            <span>liquidity provide fee</span>{" "}
+            <span>{quote.minimumProtocolFee}</span>
           </div>
           <div>
-            <span>slippage tolerance</span> <span>0.00</span>
+            <span>slippage tolerance</span>{" "}
+            <span>{quote.expectedSlippage}</span>
           </div>
         </SwapInfo>
       </Footer>
@@ -53,18 +59,20 @@ const Wrapper = styled.div`
   /* font-scale */
   --step-0: clamp(0.75rem, calc(0.7rem + 0.23vw), 0.88rem);
 
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+
+  min-height: 100vh;
   width: min(100% - var(--spacing-wrapper), 1200px);
   margin-inline: auto;
 `;
 
 const Header = styled.header`
-  position: fixed;
+  /* position: fixed;
   top: 0;
   left: 0;
-  right: 0;
+  right: 0; */
   width: min(100% - var(--spacing-wrapper), 1200px);
   margin-inline: auto;
   /* padding-inline: var(--spacing-wrapper); */
@@ -102,14 +110,14 @@ const WalletWrapper = styled.div`
 `;
 
 const Footer = styled.footer`
-  position: fixed;
+  /* position: fixed;
   bottom: 0;
   left: 0;
-  right: 0;
+  right: 0; */
   width: min(100% - var(--spacing-wrapper), 1200px);
   margin-inline: auto;
   /* padding-inline: var(--spacing-wrapper); */
-  margin-top: auto;
+  /* margin-top: auto; */
   padding-bottom: 32px;
   display: flex;
   text-transform: uppercase;

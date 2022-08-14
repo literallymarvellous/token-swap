@@ -9,8 +9,6 @@ const useDebounce = <T,>(
   const [debouncedFromValue, setDebouncedFromValue] = useState<T>(fromAmount);
   const [debouncedToValue, setDebouncedToValue] = useState<T>(toAmount);
 
-  console.log("debounce starting");
-
   useEffect(() => {
     const handler = setTimeout(() => {
       if (inputId === "fromAmount") {

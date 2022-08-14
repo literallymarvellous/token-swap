@@ -7,52 +7,50 @@ import {
   DialogContent,
   DialogOverlay,
   DialogTitle,
+  DialogTrigger,
 } from "@radix-ui/react-dialog";
 import styled, { keyframes } from "styled-components";
 
 type ModalProps = {
-  modalOpen: boolean;
+  children: React.ReactNode;
   tokens: any;
-  selectId: string;
-  setFromToken: Dispatch<
+  setFromToken?: Dispatch<
     SetStateAction<{
       symbol: string;
       decimals: number;
       address: string;
+      image: string;
     }>
   >;
-  setToToken: Dispatch<
+  setToToken?: Dispatch<
     SetStateAction<{
       symbol: string;
       decimals: number;
       address: string;
+      image: string;
     }>
   >;
 };
 
-const Modal = ({
-  modalOpen,
-  tokens,
-  selectId,
-  setFromToken,
-  setToToken,
-}: ModalProps) => {
+const Modal = ({ tokens, setFromToken, setToToken, children }: ModalProps) => {
   const selectTokenHandler = ({
     symbol,
     decimals,
     address,
+    image,
   }: {
     symbol: string;
     decimals: number;
     address: string;
+    image: string;
   }) => {
-    selectId === "from"
-      ? setFromToken((p) => ({ ...p, symbol, decimals, address }))
-      : setToToken((p) => ({ ...p, symbol, decimals, address }));
+    setFromToken && setFromToken({ symbol, decimals, address, image });
+    setToToken && setToToken({ symbol, decimals, address, image });
   };
 
   return (
-    <Dialog open={modalOpen}>
+    <ModalWrapper>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <ModalOverlay />
       <ModalContent>
         <Title>choose coin</Title>
@@ -64,14 +62,16 @@ const Modal = ({
                   symbol: "ETH",
                   decimals: 18,
                   address: "",
+                  image: "./eth.wine.svg",
                 })
               }
             >
-              {/* <div>Ether</div> */}
-              <ImageContainer>
-                <img src="./eth.wine.svg" alt="ethereum logo" />
-              </ImageContainer>
-              <TokenSymbol>ETH</TokenSymbol>
+              <ListCloseButton>
+                <ImageContainer>
+                  <img src="./eth.wine.svg" alt="ethereum logo" />
+                </ImageContainer>
+                <TokenSymbol>ETH</TokenSymbol>
+              </ListCloseButton>
             </ListItem>
             {tokens.map((token: any) => (
               <ListItem
@@ -81,14 +81,16 @@ const Modal = ({
                     symbol: token.symbol,
                     decimals: parseInt(token.decimals),
                     address: token.address,
+                    image: token.logoURI,
                   })
                 }
               >
-                {/* <div>{token.name}</div> */}
-                <ImageContainer>
-                  <img src={token.logoURI} alt={`${token.name} logo`} />
-                </ImageContainer>
-                <TokenSymbol>{token.symbol}</TokenSymbol>
+                <ListCloseButton key={token.name}>
+                  <ImageContainer>
+                    <img src={token.logoURI} alt={`${token.name} logo`} />
+                  </ImageContainer>
+                  <TokenSymbol>{token.symbol}</TokenSymbol>
+                </ListCloseButton>
               </ListItem>
             ))}
           </List>
@@ -100,9 +102,34 @@ const Modal = ({
           </CloseButton>
         </ButtonsContainer>
       </ModalContent>
-    </Dialog>
+    </ModalWrapper>
   );
 };
+
+const overlayShow = keyframes`
+  0% { opacity: 0 };
+  100% { opacity: 1 };
+`;
+
+const overlayClose = keyframes`
+  0% { opacity: 1 };
+  100% { opacity: 0};
+`;
+
+const contentShow = keyframes`
+  0% { opacity: 0 };
+  100% { opacity: 1};
+`;
+
+const contentClose = keyframes`
+  0% { opacity: 1 };
+  100% { opacity: 0};
+`;
+
+const ModalWrapper = styled(Dialog)`
+  padding: 0;
+  margin: 0;
+`;
 
 const ModalOverlay = styled(DialogOverlay)`
   --blur: 40px;
@@ -114,6 +141,18 @@ const ModalOverlay = styled(DialogOverlay)`
   inset: 0;
   z-index: 2;
   filter: blur(5px) opacity(0.96);
+
+  &[data-state="open"] {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${overlayShow} 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  }
+
+  &[data-state="closed"] {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${overlayClose} 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  }
 `;
 
 const ModalContent = styled(DialogContent)`
@@ -137,6 +176,18 @@ const ModalContent = styled(DialogContent)`
   grid-template-areas:
     "title listbox"
     "buttons .";
+
+  &[data-state="open"] {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${contentShow} 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  }
+
+  &[data-state="closed"] {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${contentClose} 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  }
 `;
 
 const Title = styled(DialogTitle)`
@@ -173,16 +224,11 @@ const List = styled.ul`
   height: 100%;
 `;
 
-const ListItem = styled.li`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: calc((var(--box-height) - (var(--padding-block) * 2)) / 5);
-`;
+const ListItem = styled.li``;
 
 const ImageContainer = styled.div`
-  width: 35px;
-  height: 35px;
+  width: 32px;
+  height: 32px;
 
   & img {
     width: 100%;
@@ -192,7 +238,7 @@ const ImageContainer = styled.div`
 
 const TokenSymbol = styled.div`
   letter-spacing: 2px;
-  font-size: 1.2rem;
+  font-size: 1rem;
 `;
 
 const ButtonsContainer = styled.div`
@@ -235,14 +281,14 @@ const CloseButton = styled(DialogClose)`
   cursor: pointer;
 `;
 
-const overlayShow = keyframes`
-  0% { opacity: 0 };
-  100% { opacity: 1 };
-`;
-
-const contentShow = keyframes`
-  0% { opacity: 0; transform: translate(-50%, -48%) scale(.96) };
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) };
+const ListCloseButton = styled(DialogClose)`
+  height: calc((var(--box-height) - (var(--padding-block) * 2)) / 6);
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--color-black);
+  color: var(--color-white);
 `;
 
 export default Modal;
